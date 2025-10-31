@@ -1,0 +1,11 @@
+pandas
+numpy
+langchain-huggingface
+langchain-unstructured
+langchain-community
+transformers
+langgraph
+langsmith
+arxiv
+python-dotenv
+streamlit
