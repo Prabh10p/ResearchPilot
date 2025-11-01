@@ -1,6 +1,7 @@
 pandas
 numpy
 langchain-huggingface
+sentence-transformers
 langchain-unstructured
 langchain-community
 transformers
@@ -9,3 +10,4 @@ langsmith
 arxiv
 python-dotenv
 streamlit
+faiss-cpu
