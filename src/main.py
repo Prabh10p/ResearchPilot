@@ -47,14 +47,15 @@ class ImpState(TypedDict):
 
 logging.info("State Created")
 
-
-
-
-
 #4- Setting Pydantic For Formatted Ouptuts
 class structure(BaseModel):
       summary:str 
       score: int = Field("Rate it out of 10")
+
+class structure1(BaseModel):
+     summary:Literal["approved","not approved"]
+     score: int
+     final:str
 
 # 5- Setting up the Tools of Langchain(Decision Node,Summary, Insight, Q/A, Report Node)
 logging.info("Setting up tools")
@@ -62,12 +63,13 @@ logging.info("Setting up tools")
 def llm_node():
      pass
 
-def summary_node():
+def summary_node(state:ImpState):
+     loaded_doc = state["user_data"]
      prompt = PromptTemplate(
      template=(
         "You are an expert in generating summaries from documents.\n"
         "Generate the best possible summary from the following text:\n\n"
-        "{loaded_doc}\n\n"
+        f"{loaded_doc}\n\n"
         "Focus your summary based on the user input: {user_input}"
     ),
     input_variables=["loaded_doc", "user_input"])
@@ -78,12 +80,13 @@ def summary_node():
      return {'summary_node':response.summary,'summary_score':response.score}
      
 
-def insights_node():
+def insights_node(state:ImpState):
+     loaded_doc = state["user_data"]
      prompt = PromptTemplate(
      template=(
         "You are an expert in generating  Key Insights from documents.\n"
         "Generate the best possible Insights involving deeper understanding or new, valuable conclusions derived from analysis from the following text:\n\n"
-        "{loaded_doc}\n\n"
+        f"{loaded_doc}\n\n"
         "Focus your Insights based on the user input: {user_input}"
     ),
     input_variables=["loaded_doc", "user_input"])
@@ -94,12 +97,13 @@ def insights_node():
      return {'insights_node':response.summary,'insights_score':response.score}
      
 
-def Quiz_node():
+def Quiz_node(state:ImpState):
+     loaded_doc = state["user_data"]
      prompt = PromptTemplate(
      template=(
         "You are an expert in generating Quiz from documents.\n"
         "Generate the best possible Quiz involving deeper questions from the topic from the following text:\n\n"
-        "{loaded_doc}\n\n"
+        f"{loaded_doc}\n\n"
         "Focus your Quiz questions based on the user input: {user_input}"
     ),
     input_variables=["loaded_doc", "user_input"])
@@ -110,12 +114,13 @@ def Quiz_node():
      return {'Quiz_node':response.summary,'Quiz_score':response.score}
      
 
-def Report_node():
+def Report_node(state:ImpState):
+     loaded_doc = state["user_data"]
      prompt = PromptTemplate(
         template=(
             "You are an expert in generating detailed academic-style reports from documents.\n"
             "Generate a well-structured report or essay from the following text:\n\n"
-            "{loaded_doc}\n\n"
+            f"{loaded_doc}\n\n"
             "Focus your report based on the user input: {user_input}\n\n"
             "Include relevant facts, logical flow, and professional tone."
         ),
@@ -129,8 +134,27 @@ def Report_node():
 
 
 
-def final_feedback_node():
-     pass
+def final_feedback_node(state:ImpState):
+     generated_ouput = (
+          state["insights_node"] or state["Quiz_node"] or state["Report_node"] or state["summary_node"]
+     )
+     prompt = PromptTemplate(
+        template=(
+        "You are an Expert Evaluator.\n"
+        "Evaluate the following output:\n\n"
+        "{generated_output}\n\n"
+        "Rate it out of 10 for clarity, depth, and grammar.\n"
+        "If the score is less than 7, return feedback='not approved'.\n"
+        "If the score is 7 or higher, return feedback='approved' and also include the full text back."
+    ),
+    input_variables=["generated_output"]
+)
+     
+     llm = HuggingFaceEndpoint(repo_id ="theojolliffe/model-3-feedback",task = "text-generation")
+     model = ChatHuggingFace(llm=llm)
+     output = model.with_structured_output(structure1)
+     response = output.invoke(prompt)
+     return {'final_feedback':response.summary,'final_score':response.score,'final_output':response.final}
 
 def Optimise():
      pass
