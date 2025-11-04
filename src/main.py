@@ -41,8 +41,10 @@ class ImpState(TypedDict):
      Report_node: str
      Report_score: int
      final_feedback: Literal["approved,not approved"]
+     flaws: str
      final_score: int
      final_output: str
+     optimised: str
 
 
 logging.info("State Created")
@@ -55,6 +57,7 @@ class structure(BaseModel):
 class structure1(BaseModel):
      summary:Literal["approved","not approved"]
      score: int
+     flaws: str
      final:str
 
 # 5- Setting up the Tools of Langchain(Decision Node,Summary, Insight, Q/A, Report Node)
@@ -146,18 +149,24 @@ def final_feedback_node(state:ImpState):
         "Rate it out of 10 for clarity, depth, and grammar.\n"
         "If the score is less than 7, return feedback='not approved'.\n"
         "If the score is 7 or higher, return feedback='approved' and also include the full text back."
+        "Also list all the flaws the output have in there"
     ),
     input_variables=["generated_output"]
-)
      
      llm = HuggingFaceEndpoint(repo_id ="theojolliffe/model-3-feedback",task = "text-generation")
      model = ChatHuggingFace(llm=llm)
      output = model.with_structured_output(structure1)
      response = output.invoke(prompt)
-     return {'final_feedback':response.summary,'final_score':response.score,'final_output':response.final}
+     return {'final_feedback':response.summary,'final_score':response.score,'final_output':response.final,'flaws':response.flaws}
 
-def Optimise():
-     pass
+def Optimise(state:ImpState):
+     prompt = PromptTemplate(
+          content = f"""You are an Expert Answer Optimizer.Evaluate the following output{state["final_output"]} 
+          and Optimise the Flaws-{state["flaws"]} in it to Improve its rating.Its previous Rating is {state["final_score"]}""")
+     llm = HuggingFaceEndpoint(repo_id="Aakali/llama-2-70b-chat-optimised3",task = "text-generation")
+     model = ChatHuggingFace(llm=llm)
+     response = model.invoke(prompt)
+     return {'optimised':response}
 
 
 def decision_maker(state:ImpState):
@@ -194,7 +203,9 @@ def nodes():
  graph.add_edge('insights_node','final_feedback_node')
  graph.add_edge('Report_node','final_feedback_node')
  graph.add_edge('Quiz_node','final_feedback_node')
+  graph.add_edge('Optimise','Optimise')
  graph.add_edge('Optimise','final_feedback_node')
+
  logging.info("Nodes and Edges Created")
 
  try:
