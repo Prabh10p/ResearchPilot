@@ -251,34 +251,6 @@ def build_and_run_graph(initial_state: Dict[str, Any]) -> Dict[str, Any]:
     
     graph.add_edge("final_feedback_node", "Optimise")
     graph.add_edge("Optimise", "final_feedback_node")
-
     workflow = graph.compile()
     response = workflow.invoke(initial_state)  # pass full state including user_data / user_input
     return response
-
-if __name__ == "__main__":
-    try:
-        user_input = input("What would you like to generate? (Generate Summary/Generate Insights/Generate Quiz/Generate Report) ")
-        user_data = input("Paste the document/text to process (or point to loader):\n")
-        initial_state = {
-            "user_input": user_input,
-            "user_data": user_data,
-            # you can provide defaults for other state fields if your graph requires them
-            "summary_node": "",
-            "summary_score": 0,
-            "insights_node": "",
-            "insights_score": 0,
-            "Quiz_node": "",
-            "Quiz_score": 0,
-            "Report_node": "",
-            "Report_score": 0,
-            "final_feedback": "not approved",
-            "flaws": "",
-            "final_score": 0,
-            "final_output": "",
-            "optimised": ""
-        }
-        result = build_and_run_graph(initial_state)
-        print("Workflow result:\n", result)
-    except Exception as e:
-        raise CustomException(e, sys)
